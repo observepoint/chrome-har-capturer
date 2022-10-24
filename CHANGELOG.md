@@ -1,5 +1,19 @@
 # Changes
 
+## v0.13.103
+
+### Details
+Adds support for Network.responseReceivedExtraInfo event to parse cookie data into the har data.
+
+### Bug Fix
+N/A
+
+### Breaking Changes
+
+### Jira Issues
+[WORK-22923] (https://observepoint.atlassian.net/browse/WORK-22923)
+
+
 ## v0.13.102
 
 ### Details
