@@ -57,7 +57,7 @@ function log(string) {
 }
 
 async function preHook(url, client) {
-    const {Network, Security} = client;
+    const {Network, Security, Browser} = client;
     // optionally ignore certificate errors
     if (program.insecure) {
         await Security.enable();
@@ -68,6 +68,11 @@ async function preHook(url, client) {
     }
     // optionally set user agent
     const userAgent = program.agent;
+    const thisAgent = (await Browser.getVersion()).userAgent
+    const newAgent = thisAgent.replace("Headless", "")
+    //console.log("Version: ", newAgent);
+    await Network.setUserAgentOverride({userAgent: newAgent});
+
     if (typeof userAgent === 'string') {
         await Network.setUserAgentOverride({userAgent});
     }
