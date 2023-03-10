@@ -91,22 +91,38 @@ describe('HAR (offline)', () => {
             });
     });
 
-    it('Parse event log with Network.requestWillBeSentExtraInfo will append extra headers', async () => {
-        return CHC.fromLog('http://someurl', log, {
+    it('Parse event log with Network.requestWillBeSentExtraInfo will append extra headers when no existing matching header', async () => {
+        const customLog = JSON.parse(JSON.stringify(log));
+        customLog.find(entry => entry.method === 'Network.requestWillBeSentExtraInfo').params.headers['testHeaderName'] = 'newValue';
+        return CHC.fromLog('http://someurl', customLog, {
             content: true
         }).then((har) => {
-            const secGpc = har.log.entries[0].request.headers.some((header) => header.name === 'sec-gpc' && header.value === '1');
+            const secGpc = har.log.entries[0].request.headers.some((header) => header.name === 'testHeaderName' && header.value === 'newValue');
             return Promise.all([validate.har(har), allResultsTrue([secGpc])]);
         });
     });
 
-    it('Parse event log with Network.requestWillBeSentExtraInfo will overwrite original headers with new headers case-insensitive', async () => {
-        return CHC.fromLog('http://someurl', log, {
+    it('Parse event log with Network.requestWillBeSentExtraInfo will append header with case-insensitive name but different value', async () => {
+        const customLog = JSON.parse(JSON.stringify(log));
+        customLog.find(entry => entry.method === 'Network.requestWillBeSent').params.request.headers['TestHeaderName'] = 'oldvalue';
+        customLog.find(entry => entry.method === 'Network.requestWillBeSentExtraInfo').params.headers['testheadername'] = 'newValue';
+        return CHC.fromLog('http://someurl', customLog, {
             content: true
         }).then((har) => {
-            const valueOverwritten = har.log.entries[0].request.headers.some((header) => header.name === 'User-Agent' && header.value === 'overwritePreexistingUserAgentWithDifferentCase');
-            const noDupe = !har.log.entries[0].request.headers.some((header) => header.name === 'user-agent');
-            return Promise.all([validate.har(har), allResultsTrue([valueOverwritten, noDupe])]);
+            const hasDupe = har.log.entries[0].request.headers.filter((header) => header.name.toLowerCase() === 'testheadername').length === 2;
+            return Promise.all([validate.har(har), allResultsTrue([hasDupe])]);
+        });
+    });
+
+    it('Parse event log with Network.requestWillBeSentExtraInfo will not append header if case-insensitive name and value already exist', async () => {
+        const customLog = JSON.parse(JSON.stringify(log));
+        customLog.find(entry => entry.method === 'Network.requestWillBeSent').params.request.headers['TestHeaderName'] = 'sameValue';
+        customLog.find(entry => entry.method === 'Network.requestWillBeSentExtraInfo').params.headers['testheadername'] = 'sameValue';
+        return CHC.fromLog('http://someurl', customLog, {
+            content: true
+        }).then((har) => {
+            const noDupe = har.log.entries[0].request.headers.filter((header) => header.name.toLowerCase() === 'testheadername').length === 1;
+            return Promise.all([validate.har(har), allResultsTrue([noDupe])]);
         });
     });
 });
